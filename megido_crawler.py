@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import csv
+import time
 from pprint import pprint
 from requests.compat import urljoin
 import os
@@ -108,16 +109,25 @@ def csv_write_megido_dict(megido_dict):
         for target_dict in target_dicts:
             writer.writerow(target_dict)
 
+def soup_return(megido_name, url):
+    res = requests.get(url)
+    print(res)
+    return BeautifulSoup(res.text, "html.parser")
+
+def finish_judge(soup):    
+    if soup.select_one(".next a") == None:
+        megido_name = None
+        print('finish')
+    else:
+        megido_name = soup.select_one(".next a").get('href')
+    return megido_name
 
 def megido_crawler():
     megido_name = '/megido/バエル'
     info_list = []
     while megido_name != None:
         url = "https://megido72-portal.com" + megido_name
-        res = requests.get(url)
-        print(res)
-        soup = BeautifulSoup(res.text, "html.parser")
-
+        soup = soup_return(megido_name,url)
         status = status_dict_result(soup)
         mass_effect = mass_dict_result(soup)
         info = megidoname_effectname_return_dict(soup)
@@ -129,11 +139,8 @@ def megido_crawler():
         megido_section_title = soup.select_one('h1.section-title').get_text()
         print(megido_section_title)
         megido_getImages_request(soup, megido_section_title, url)
-        if megido_section_title == 'アンドロマリウス':
-            megido_name = None
-            print('finish')
-        else:
-            megido_name = soup.select_one(".next a").get('href')
+        megido_name = finish_judge(soup)
+        time.sleep(1)
 
     megido_dict = { "megido" : info_list }
     csv_write_megido_dict(megido_dict)

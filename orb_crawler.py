@@ -52,17 +52,33 @@ def csv_write_orb_dict(orb_dict):
         for target_dict in target_dicts:
             writer.writerow(target_dict)
 
+'''
+スクレイピング対象の URL にリクエストを送り HTML を取得する
+取得した HTML からBeautifulesoupオブジェクトを作成する 
+'''
+def soup_return(orb_name, url):
+    res = requests.get(url)
+    print(res)
+    return BeautifulSoup(res.text, "html.parser")
+
+'''
+次のページがあるかないのかを判定する
+'''
+def finish_judge(soup):    
+    if soup.select_one(".next a") == None:
+        orb_name = None
+        print('finish')
+    else:
+        orb_name = soup.select_one(".next a").get('href')
+    return orb_name
+
 def orb_crawler():
     orb_name = '/orb/コボルト（ラッシュ）'
     info_list = []
     while orb_name != None:
         url = "https://megido72-portal.com" + orb_name
-        res = requests.get(url)
-        print(res)
-        soup = BeautifulSoup(res.text, "html.parser")
-
+        soup = soup_return(orb_name, url)
         status = orb_dict_result(soup)
-        orb_getImages_request(soup, "ココボルト", url)
 
         tmp = { "status" : status }
         info_list.append(tmp)
@@ -71,11 +87,7 @@ def orb_crawler():
         orb_section_title = soup.select_one('h1.section-title').get_text()
         print(orb_section_title)
         orb_getImages_request(soup, orb_section_title, url)
-        if orb_section_title == '火殻竜':
-            orb_name = None
-            print('finish')
-        else:
-            orb_name = soup.select_one(".next a").get('href')
+        orb_name = finish_judge(soup)
         time.sleep(1)
         
     megido_dict = { "orb" : info_list }
